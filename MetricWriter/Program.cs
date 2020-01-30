@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.Serialization;
 using System.Threading;
 using Microsoft.ApplicationInsights;
 
@@ -23,6 +24,11 @@ namespace MetricWriter
                 InstrumentationKey = args[0],
             });
 
+            telemetryClient.TrackException(new MyCustomException("Test")
+            {
+                Value1 = 4,
+                Value2 = "aaa",
+            });
 
             //var metric = telemetryClient.GetMetric("art", "dim1");
 
@@ -33,17 +39,46 @@ namespace MetricWriter
             //}
 
 
-            var metricWriter = telemetryClient.GetMetricWriter("art", new MyMetricDimentions
-            {
-                Dim1 = "aa",
-            });
-            for (int i = 0; i < 5; i++)
-            {
-                metricWriter.TrackValue(i);
+            //var metricWriter = telemetryClient.GetMetricWriter("art", new MyMetricDimentions
+            //{
+            //    Dim1 = "aa",
+            //});
+            //for (int i = 0; i < 5; i++)
+            //{
+            //    metricWriter.TrackValue(i);
 
-                Thread.Sleep(TimeSpan.FromMinutes(1));
-            }
+            //    Thread.Sleep(TimeSpan.FromMinutes(1));
+            //}
+
+            telemetryClient.Flush();
         }
+    }
+
+
+
+    [Serializable]
+    public class MyCustomException : Exception
+    {
+        public MyCustomException() { }
+        public MyCustomException(string message) : base(message) { }
+        public MyCustomException(string message, Exception inner) : base(message, inner) { }
+        protected MyCustomException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) {
+            Value1 = info.GetInt32("v1");
+            Value2 = info.GetString("v2");
+        }
+
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+            info.AddValue("v1", Value1);
+            info.AddValue("v2", Value2);
+        }
+
+        public int Value1 { get; set; }
+
+        public string Value2 { get; set; }
     }
 
     public class MyMetricDimentions
